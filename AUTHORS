@@ -1,0 +1,16 @@
+original code
+N3E7CR34TUR3.
+http://proxychains.sourceforge.net
+netcreature@users.sourceforge.net
+
+main.c, remote-dns, thread safety, bugfixes, build system, cleanups
+rofl0r.
+https://github.com/rofl0r/proxychains
+
+localnet, bugfixes, macos x support, bsd support, packaging
+adam hamsik.
+https://github.com/haad/proxychains
+
+localnet-port, bugfixes
+jianing yang.
+https://github.com/jianingy/proxychains

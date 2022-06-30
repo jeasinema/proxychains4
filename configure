@@ -1,0 +1,121 @@
+#!/bin/sh
+
+prefix=/usr/local
+develflg=0
+
+usage() {
+	echo "supported arguments"
+	echo "--prefix=/path 		default: $prefix"
+	echo "--exec_prefix=/path	default: $prefix/bin"
+	echo "--bindir=/path		default: $prefix/bin"
+	echo "--libdir=/path		default: $prefix/lib"
+	echo "--includedir=/path	default: $prefix/include"
+	echo "--sysconfdir=/path	default: $prefix/etc"
+	echo "--devel				default:no (set development mode)"
+	echo "--help : show this text"
+	exit 1
+}
+
+spliteq() {
+	arg=$1
+	echo "${arg#*=}"
+	#alternatives echo "$arg" | cut -d= -f2-
+	# or echo "$arg" | sed 's/[^=]*=//'
+}
+
+parsearg() {
+	case "$1" in
+	--prefix=*) prefix=`spliteq $1`;;
+	--exec_prefix=*) exec_prefix=`spliteq $1`;;
+	--bindir=*) bindir=`spliteq $1`;;
+	--libdir=*) libdir=`spliteq $1`;;
+	--includedir=*) includedir=`spliteq $1`;;
+	--sysconfdir=*) sysconfdir=`spliteq $1`;;
+	--devel) develflg=1;;
+	--help) usage;;
+	esac
+}
+
+ismac() {
+	uname -s | grep Darwin
+}
+
+isbsd() {
+        uname -s | grep BSD
+}
+
+islinux() {
+        uname -s | grep Linux
+}
+
+while true ; do
+	case $1 in
+	-*) parsearg "$1"; shift;;
+	*) break ;;
+	esac
+done
+
+if [ -z "$exec_prefix" ] ; then
+	exec_prefix=$prefix
+fi
+
+if [ -z "$libdir" ] ; then
+	libdir=$prefix/lib
+fi
+
+if [ -z "$includedir" ] ; then
+	includedir=$prefix/include
+fi
+
+if [ -z "$sysconfdir" ] ; then
+	sysconfdir=$prefix/etc
+fi
+
+if [ -z "$bindir" ] ; then
+	bindir=$exec_prefix/bin
+fi
+
+if [ -z "$CC" ] ; then
+	CC=cc
+fi
+
+if [ $develflg -eq 1 ]; then
+	CFLAGS="-Wextra -Wunused -Wuninitialized -Wconversion -fno-common -g -O0 -DDEBUG"
+fi
+
+echo CC?=$CC>config.mak
+[ -z "$CPPFLAGS" ] || echo CPPFLAGS?=$CPPFLAGS>>config.mak
+[ -z "$CFLAGS" ] || echo USER_CFLAGS?=$CFLAGS>>config.mak
+[ -z "$LDFLAGS" ] || echo USER_LDFLAGS?=$LDFLAGS>>config.mak
+
+echo prefix=$prefix>>config.mak
+echo exec_prefix=$exec_prefix>>config.mak
+echo bindir=$bindir>>config.mak
+echo libdir=$libdir>>config.mak
+echo includedir=$includedir>>config.mak
+echo sysconfdir=$sysconfdir>>config.mak
+
+if ismac ; then
+	echo LDSO_SUFFIX=dylib>>config.mak
+	echo OS_CFLAGS+=-DIS_MAC=1 -arch x86_64 >>config.mak
+	echo OS_LDFLAGS+=-arch x86_64 -lpthread -ldl -Wl,>>config.mak
+	echo LD_SET_SONAME=-Wl,-install_name,>>config.mak
+	echo LDSO_SUFFIX=dylib>>config.mak
+	echo INSTALL_FLAGS=-m>>config.mak
+fi
+
+if islinux ; then
+    echo OS_LDFLAGS=-pthread -ldl -Wl,--no-as-needed>>config.mak
+    echo LD_SET_SONAME=-Wl,-soname= >>config.mak
+fi
+
+if isbsd ; then
+    #echo OS_LDFLAGS=
+    #echo OS_CFLAGS
+    echo INSTALL_FLAGS=-m>>config.mak
+    echo LD_SET_SONAME=-Wl,-rpath,$libdir -install_name,>>config.mak
+fi
+
+echo done, now run make \&\& make install
+
+
